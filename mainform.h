@@ -34,5 +34,10 @@ private:
 
 private slots:
     void stdClicked(QString name);
+    void addClicked() {};
+    void d3Clicked() {};
+    void polarClicked() {};
+    void saveClicked() {};
+    void closeClicked() {};
 };
 #endif // MAINFORM_H
