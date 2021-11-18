@@ -42,17 +42,21 @@ TEST(CALC_SIMPLE_TEST_1, clac_simple_test) {
     double a = -1;
     double b = 1;
     int dpi = 100;
-    string mode = "count";
+    string mode = "simple";
     double ** values = new double*[n];
     for (int i = 0; i < n; ++i){
-        values[i] = new double[1];
+        values[i] = new double[dpi];
     }
+
     Calculation calculation(a, b, dpi, f, mode);
     calculation.calc();
     calculation.get_table(values);
-
-    EXPECT_EQ((abs(values[0][0]- (-0.541)) < (b-a) / dpi) ? 0: -1, 0);
-    EXPECT_EQ(values[0][1], 0);
+    
+    int j = (-0.5 - a)/(b -a)*dpi;
+    EXPECT_EQ((abs(values[1][j]- (-0.375)) < (b-a) / dpi) ? 0: -1, 0);
+    j = (0.2 - a)/(b -a)*dpi;
+    EXPECT_EQ((abs(values[1][j]- (-3.56)) < (b-a) / dpi) ? 0: -1, 0);
+    
 
     for (int i = 0; i < n; ++i){
         delete [] values[i];
