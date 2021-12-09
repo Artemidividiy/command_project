@@ -12,30 +12,14 @@
 
 int main() {
 	Gnuplot gp;
-	// Create a script which can be manually fed into gnuplot later:
-	//    Gnuplot gp(">script.gp");
-	// Create script and also feed to gnuplot:
-	//    Gnuplot gp("tee plot.gp | gnuplot -persist");
-	// Or choose any of those options at runtime by setting the GNUPLOT_IOSTREAM_CMD
-	// environment variable.
 
-	// Gnuplot vectors (i.e. arrows) require four columns: (x,y,dx,dy)
 	std::vector<boost::tuple<double, double, double, double> > pts_A;
 
-	// You can also use a separate container for each column, like so:
 	std::vector<double> pts_B_x;
 	std::vector<double> pts_B_y;
 	std::vector<double> pts_B_dx;
 	std::vector<double> pts_B_dy;
-
-	// You could also use:
-	//   std::vector<std::vector<double> >
-	//   boost::tuple of four std::vector's
-	//   std::vector of std::tuple (if you have C++11)
-	//   arma::mat (with the Armadillo library)
-	//   blitz::Array<blitz::TinyVector<double, 4>, 1> (with the Blitz++ library)
-	// ... or anything of that sort
-
+    
 	for(double alpha=0; alpha<1; alpha+=1.0/24.0) {
 		double theta = alpha*2.0*3.14159;
 		pts_A.push_back(boost::make_tuple(
