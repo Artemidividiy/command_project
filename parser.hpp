@@ -15,4 +15,6 @@ private:
 	std::string string_initial= "";
 };
 
+void run_for_test(istream& input, ostream& output);
+
 #endif //PARSER_HPP

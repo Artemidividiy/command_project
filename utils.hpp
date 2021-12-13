@@ -4,8 +4,10 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include <regex>
 
 using namespace std;
+static map<int, string> priority_map = {{1, "+-"}, {2, "*/"}, {3, "()"}};
 
 struct ICalculatable
 {
@@ -117,6 +119,9 @@ double binary_search(double a, double b, int n, double (*func)(double x));
 void find_closest_pos(const std::map<int, std::unique_ptr<ICalculatable>> &calc_map, const int pos, int& closest_right);
 std::unique_ptr<ICalculatable> extract(std::map<int, std::unique_ptr<ICalculatable>>& mp, int pos);
 bool is_less_priority(char operation, char next_operation);
-// char find_next_after_bracket_operation(int pos);
+sregex_iterator find_its_closing_bracket(sregex_iterator it, string s);
+string string_inside_brackets(sregex_iterator it, sregex_iterator it_bracket_end, string s);
+sregex_iterator find_end_of_subf(sregex_iterator it, string s);
+string string_subf(sregex_iterator it, sregex_iterator it_end_of_subf, string s);
 
 #endif // UTILS_HPP
