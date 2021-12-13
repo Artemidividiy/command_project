@@ -27,7 +27,6 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
         calculatable_map.insert(make_pair(match.position(), make_unique<X>()));
     }
 
-    auto zero = make_unique<Scalar>(0);
     sregex_iterator it = operations_begin;
     unique_ptr<ICalculatable> previous_to_calculate;
     unique_ptr<ICalculatable> temp;
@@ -37,15 +36,27 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
         previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first)); 
     }
     else{
-        if (priority_map[1].find((*it).str()[0]) == string::npos){ 
-            sregex_iterator it_end_of_subf = it;
-            it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-            previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
-            it = it_end_of_subf;
-        }
-        else{
-            previous_to_calculate = move(zero);
-            zero = make_unique<Scalar>(0);
+        switch((*it).str()[0])
+        {
+            case '+':
+            case '-':
+            {
+                auto zero = make_unique<Scalar>(0);
+                previous_to_calculate = move(zero);
+                break;
+            }
+            case '(':
+            {
+                sregex_iterator it_end_of_subf = it;
+                it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+                previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
+                it = it_end_of_subf;
+                break;
+            }
+            default:
+            {
+                throw InvalidString;
+            }
         }
     }
 
@@ -103,8 +114,8 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
             previous_to_calculate = move(make_f(string_subf(it_prev, it_end_of_subf, s)));
             it = it_end_of_subf;
         }
-        // приоритет следующей операции ниже текущей
-        if (temp != nullptr){ // && ((is_less_priority(next_match_char, temp_char)) || (next_match_char == '\0'))){
+
+        if (temp != nullptr){
             switch (temp_char)
             {
             case '+':
@@ -145,7 +156,12 @@ void run_for_test(istream& input, ostream& output){
     getline(input, s);
     input >> x;
     Parser parser(s);
-    auto f = parser.make_f();
-    output << f->calculate(x) << endl;
+    try{
+        auto f = parser.make_f();
+        output << f->calculate(x) << endl;
+    }
+    catch(invalid_argument e){
+        output << e.what() << endl;
+    }
     return;
 }

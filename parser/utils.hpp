@@ -6,6 +6,8 @@
 #include <map>
 #include <regex>
 
+#define DivisionException invalid_argument("Division by zero")
+
 using namespace std;
 static map<int, string> priority_map = {{1, "+-"}, {2, "*/"}, {3, "()"}};
 
@@ -47,9 +49,7 @@ public:
 	BinaryOperator(ICalculatableUPtr left, ICalculatableUPtr right)
 					: left_{std::move(left)},
 					right_{std::move(right)}
-	{
-		/* throw on null */
-	}
+	{}
 
 	float calculate(float x) const override
 	{
@@ -110,7 +110,11 @@ public:
 
 	float calculate(float left, float right) const override
 	{
-		return left / right;
+		if (right)
+			return left / right;
+		else{
+			throw DivisionException;
+		}
 	}
 
 };

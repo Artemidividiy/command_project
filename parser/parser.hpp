@@ -3,6 +3,8 @@
 
 #include "utils.hpp"
 
+#define InvalidString invalid_argument("Invalid string")
+
 class Parser{
 public:
 	Parser(std::string s) : string_initial(s){}
