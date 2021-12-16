@@ -1,21 +1,5 @@
 #include "utils.hpp"
 
-double binary_search(double a, double b, int n, double (*func)(double x)){
-    double first = a;
-    double last = b;
-    double eps = (b - a) / n;
-    int k = 1;
-    if (func(first) > func(last)){ k = -1;}
-    while((last - first) > eps) {
-        double x = ( first + last ) / 2;
-        if(k*func(x) < 0)
-            first = x;
-        else 
-            last = x;
-    }
-    return first;
-}
-
 void find_closest_pos(const map<int, unique_ptr<ICalculatable>> &calc_map, const int pos, int& closest_right){
     bool calc_map_empty = calc_map.empty();
     if (calc_map_empty){
@@ -33,42 +17,41 @@ unique_ptr<ICalculatable> extract(map<int, unique_ptr<ICalculatable>>& mp, int p
     return result;
 }
 
-int find_priority(char operation){
-    for(auto it_priority = priority_map.begin(); it_priority != priority_map.end(); ++it_priority){
-        if (it_priority->second.find(operation) != string::npos){
-            return it_priority->first;
-        }
-    }
-    return -1;
+int find_priority(int operation_key){
+    // for(auto it_priority = priority_map.begin(); it_priority != priority_map.end(); ++it_priority){
+    //     if (it_priority->second.find(operation) != string::npos){
+    //         return it_priority->first;
+    //     }
+    // }
+    return operation_key / 10;
 }
 
-bool is_less_priority(char operation, char next_operation){
-    if ((next_operation == '\0') || (operation == '\0')){ return false; }
+bool is_less_priority(int operation_key, int next_operation_key){
+    if (next_operation_key == END_OF_STRING){ return false; }
     else{
-        return find_priority(operation) < find_priority(next_operation);
+        return (operation_key / 10) < (next_operation_key / 10);
     }
 }
 
 sregex_iterator find_end_of_subf(sregex_iterator it, string s){
-    int level = 0;
     smatch match = *it;
-    char operation = match.str()[0];
-    int priority_to_find = find_priority(operation); 
-    bool flag = false;
-    char char_to_compare = '\0';
+    int operation_key = operations_map[match.str()];
+    int level = (operation_key == BRACKET ? 1 : 0);
+    int priority_to_find = find_priority(operation_key); 
+    string string_to_compare = "\0";
     it++;
 
     while (it != sregex_iterator()){
         match = *it;
-        char_to_compare = match.str()[0];
-        if (char_to_compare == '('){ 
+        string_to_compare = match.str();
+        if (string_to_compare == "("){ 
             level++; 
         }
-        if (char_to_compare == ')'){
+        if (string_to_compare == ")"){
             level--;
         }
-        if ((find_priority(char_to_compare) == priority_to_find) && (level == 0) ||
-            ((find_priority(char_to_compare) == priority_to_find) && (level == -1))){
+        if (((find_priority(operations_map[string_to_compare]) == priority_to_find) && (level == 0))){ // ||
+            //((find_priority(operations_map[string_to_compare]) == priority_to_find) && (level == -1))){
             return it;
         }
         it++;

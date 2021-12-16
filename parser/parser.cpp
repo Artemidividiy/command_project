@@ -8,9 +8,9 @@ unique_ptr<ICalculatable> Parser::make_f(){
 
 unique_ptr<ICalculatable> Parser::make_f(string s){
 
-    auto numbers = regex("(\\d*\\.?\\d+?)");
+    auto numbers = regex("(\\d*\\.?\\d+)");
     auto xs = regex("([xX])");
-    auto operations = regex("([\\+\\-\\*\\/\\(\\)])");
+    auto operations = regex("(sqrt|sin|cos|[\\+\\-\\*\\/\\(\\)])");
 
     auto numbers_begin = sregex_iterator(s.begin(), s.end(), numbers);
     auto xs_begin = sregex_iterator(s.begin(), s.end(), xs);
@@ -30,68 +30,110 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
     sregex_iterator it = operations_begin;
     unique_ptr<ICalculatable> previous_to_calculate;
     unique_ptr<ICalculatable> temp;
-    char temp_char = '\0';
+    int temp_key = END_OF_STRING;
 
-    if ((it == sregex_interator_end) || calculatable_map.begin()->first < (*it).position()){
-        previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first)); 
+    if (it != sregex_interator_end){
+        if(calculatable_map.begin()->first < (*it).position())
+            previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first));
+        else
+            switch(operations_map[(*it).str()])
+            {
+                case PLUS:
+                case MINUS:
+                {
+                    auto zero = make_unique<Scalar>(0);
+                    previous_to_calculate = move(zero);
+                    break;
+                }
+                case BRACKET:
+                {
+                    sregex_iterator it_end_of_subf = it;
+                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+                    previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
+                    it = it_end_of_subf;
+                    break;
+                }
+                case SQRT:
+                {
+                    sregex_iterator it_end_of_subf = it;
+                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
+                        throw InvalidString;
+                    
+                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+                    it++;
+                    auto f = make_unique<Sqrt>(move(make_f(string_subf(it, it_end_of_subf, s))));
+                    previous_to_calculate = move(f);
+                    it = it_end_of_subf;
+                    break;
+                }
+                case SIN:
+                {
+                    sregex_iterator it_end_of_subf = it;
+                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
+                        throw InvalidString;
+                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+                    it++;
+                    auto f = make_unique<Sin>(move(make_f(string_subf(it, it_end_of_subf, s))));
+                    previous_to_calculate = move(f);
+                    it = it_end_of_subf;
+                    break;
+                }
+                case COS:
+                {
+                    sregex_iterator it_end_of_subf = it;
+                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
+                        throw InvalidString;
+                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+                    it++;
+                    auto f = (make_f(string_subf(it, it_end_of_subf, s)));
+                    previous_to_calculate = move(make_unique<Cos>(move(f)));
+                    it = it_end_of_subf;
+                    break;
+                }
+                default:
+                {
+                    throw InvalidString;
+                }
+            }
     }
-    else{
-        switch((*it).str()[0])
-        {
-            case '+':
-            case '-':
-            {
-                auto zero = make_unique<Scalar>(0);
-                previous_to_calculate = move(zero);
-                break;
-            }
-            case '(':
-            {
-                sregex_iterator it_end_of_subf = it;
-                it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-                previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
-                it = it_end_of_subf;
-                break;
-            }
-            default:
-            {
-                throw InvalidString;
-            }
-        }
-    }
+    else
+        if (calculatable_map.size() == 1)
+            previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first));
+        else
+            throw InvalidString;
 
     while(it != sregex_interator_end){
         smatch match = *it;
-        const char match_char = match.str()[0];
-        char next_match_char = '\0';
+        int match_key = operations_map[match.str()];
+        int next_match_key = END_OF_STRING;
         int closest_right = 0;
         sregex_iterator it_prev = it;
         if ((++it) != sregex_interator_end){
-            next_match_char = (*it).str()[0];
+            next_match_key = operations_map[(*it).str()];
         }
-        if (!is_less_priority(match_char, next_match_char)){ // приоритет текущей операции не меньше следующей
+        if (!is_less_priority(match_key, next_match_key)){ // приоритет текущей операции не меньше следующей
             find_closest_pos(calculatable_map, match.position(), closest_right);
-            switch (match_char)
+            switch (operations_map[match.str()])
             {
-            case '+':
+            case PLUS:
             {
                 auto f = make_unique<SumOperator>(move(previous_to_calculate), move(extract(calculatable_map, closest_right)));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '-':
+            case MINUS:
             {
                 auto f = make_unique<SubtractionOperator>(move(previous_to_calculate), move(extract(calculatable_map, closest_right)));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '*':
+            case MULTIPLY:
             {
                 auto f = make_unique<MultiOperator>(move(previous_to_calculate), move(extract(calculatable_map, closest_right)));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '/':
+            case DIVIDE:
             {
                 auto f = make_unique<DivideOperator>(move(previous_to_calculate), move(extract(calculatable_map, closest_right)));
                 previous_to_calculate = move(f);
@@ -104,39 +146,34 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
         else{
             sregex_iterator it_end_of_subf = it_prev;
             temp = move(previous_to_calculate);
-            temp_char = match_char;
-            if ( next_match_char == '('){
-                it_end_of_subf = find_end_of_subf(it_end_of_subf++, s);
-            }
-            else{
-                it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-            }
+            temp_key = match_key;
+            it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
             previous_to_calculate = move(make_f(string_subf(it_prev, it_end_of_subf, s)));
             it = it_end_of_subf;
         }
 
         if (temp != nullptr){
-            switch (temp_char)
+            switch (temp_key)
             {
-            case '+':
+            case PLUS:
             {
                 auto f = make_unique<SumOperator>(move(temp), move(previous_to_calculate));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '-':
+            case MINUS:
             {
                 auto f = make_unique<SubtractionOperator>(move(temp), move(previous_to_calculate));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '*':
+            case MULTIPLY:
             {
                 auto f = make_unique<MultiOperator>(move(temp), move(previous_to_calculate));
                 previous_to_calculate = move(f);
                 break;
             }
-            case '/':
+            case DIVIDE:
             {
                 auto f = make_unique<DivideOperator>(move(temp), move(previous_to_calculate));
                 previous_to_calculate = move(f);

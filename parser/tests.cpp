@@ -3,7 +3,7 @@
 
 #include "parser.hpp"
 
-#define eps 1e-4
+#define eps 1e-2
 using namespace std;
 
 TEST(Parser_TEST_1, parser_one_priority_test) {
@@ -92,6 +92,50 @@ TEST(Parser_TEST_8, parser_invalid_string_test) {
     input << x;
     run_for_test(input, output);
     EXPECT_EQ(output.str(), string("Invalid string\n"));
+}
+
+TEST(Parser_TEST_9, parser_sqrt_test) {
+    stringstream input;
+    stringstream output = stringstream();
+	string s = "5 + sqrt(4* x) * (8 - x) - 3.5";
+    double x = 4;
+    input << s << endl;
+    input << x;
+    run_for_test(input, output);
+    EXPECT_EQ((stof(output.str()) - (17.5))< eps, true);
+}
+
+TEST(Parser_TEST_10, parser_invalid_sqrt_test) {
+    stringstream input;
+    stringstream output = stringstream();
+	string s = "5 + sqrt x";
+    double x = 2;
+    input << s << endl;
+    input << x;
+    run_for_test(input, output);
+    EXPECT_EQ(output.str(), string("Invalid string\n"));
+}
+
+TEST(Parser_TEST_11, parser_sqrt_from_negative_test) {
+    stringstream input;
+    stringstream output = stringstream();
+	string s = "5 + sqrt(x)";
+    double x = -2;
+    input << s << endl;
+    input << x;
+    run_for_test(input, output);
+    EXPECT_EQ(output.str(), string("Root from negative number\n"));
+}
+
+TEST(Parser_TEST_12, parser_sin_cos_test) {
+    stringstream input;
+    stringstream output = stringstream();
+	string s = "2 *x + sin( -x)/ (-2) +7.3+ cos(3.14)/sin(3.14*3 - x)";
+    double x = 1.57;
+    input << s << endl;
+    input << x;
+    run_for_test(input, output);
+    EXPECT_EQ((stof(output.str()) - (9.94))< eps, true);
 }
 
 int main(int argc, char **argv) {
