@@ -1,0 +1,7 @@
+build/
+drawer/testing_ground.cpp
+drawer/build
+drawer/glfw
+drawer/shader_utils.cpp
+drawer/shader_utils.h
+drawer/main
