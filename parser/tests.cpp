@@ -1,7 +1,7 @@
+#include "parser.hpp"
+
 #include <gtest/gtest.h>
 #include <iostream>
-
-#include "parser.hpp"
 
 #define eps 1e-2
 using namespace std;

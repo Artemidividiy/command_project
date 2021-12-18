@@ -7,7 +7,6 @@
 #include <regex>
 #include <math.h>
 
-
 using std::map;
 using std::make_pair;
 using std::string;
