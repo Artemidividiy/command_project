@@ -1,95 +1,45 @@
 #include "parser.hpp"
 
-using namespace std;
+unique_ptr<ICalculatable> Parser::making_subf(sregex_iterator& it, string s){
+    sregex_iterator it_end_of_subf = it;
+    int operation_key = operations_map[(it_end_of_subf)->str()];
+    if ((operation_key == SQRT) || (operation_key == COS) || (operation_key == SIN)){
+        ++it_end_of_subf;
+        if (operations_map[(it_end_of_subf)->str()] != BRACKET)
+            throw InvalidString;
+    }
 
-unique_ptr<ICalculatable> Parser::make_f(){
-    return make_f(string_initial);
+    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
+    auto previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
+    it = it_end_of_subf;
+    return move(previous_to_calculate);
 }
 
-unique_ptr<ICalculatable> Parser::make_f(string s){
-
-    auto numbers = regex("(\\d*\\.?\\d+)");
-    auto xs = regex("([xX])");
-    auto operations = regex("(sqrt|sin|cos|[\\+\\-\\*\\/\\(\\)])");
-
-    auto numbers_begin = sregex_iterator(s.begin(), s.end(), numbers);
-    auto xs_begin = sregex_iterator(s.begin(), s.end(), xs);
-    auto operations_begin = sregex_iterator(s.begin(), s.end(), operations);
-    auto sregex_interator_end = sregex_iterator();    
-    
-    map<int, unique_ptr<ICalculatable>> calculatable_map;
-    for (sregex_iterator i = numbers_begin; i != sregex_interator_end; ++i) {
-        smatch match = *i;
-        calculatable_map.insert(make_pair(match.position(), make_unique<Scalar>(stof(match.str()))));
-    }
-    for (sregex_iterator i = xs_begin; i != sregex_interator_end; ++i) {
-        smatch match = *i;
-        calculatable_map.insert(make_pair(match.position(), make_unique<X>()));
-    }
-
-    sregex_iterator it = operations_begin;
-    unique_ptr<ICalculatable> previous_to_calculate;
-    unique_ptr<ICalculatable> temp;
-    int temp_key = END_OF_STRING;
-
+unique_ptr<ICalculatable> Parser::initial_iteration(sregex_iterator& it, 
+												map<int, unique_ptr<ICalculatable>>& calculatable_map, 
+												string s){
+    auto sregex_interator_end = sregex_iterator();
     if (it != sregex_interator_end){
-        if(calculatable_map.begin()->first < (*it).position())
-            previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first));
+        if(calculatable_map.begin()->first < it->position())
+            return move(extract(calculatable_map, calculatable_map.begin()->first));
         else
-            switch(operations_map[(*it).str()])
+            switch(operations_map[it->str()])
             {
                 case PLUS:
                 case MINUS:
                 {
                     auto zero = make_unique<Scalar>(0);
-                    previous_to_calculate = move(zero);
+                     return move(zero);
                     break;
                 }
                 case BRACKET:
-                {
-                    sregex_iterator it_end_of_subf = it;
-                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-                    previous_to_calculate = move(make_f(string_subf(it, it_end_of_subf, s)));
-                    it = it_end_of_subf;
-                    break;
-                }
+                    return making_subf(it, s);
                 case SQRT:
-                {
-                    sregex_iterator it_end_of_subf = it;
-                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
-                        throw InvalidString;
-                    
-                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-                    it++;
-                    auto f = make_unique<Sqrt>(move(make_f(string_subf(it, it_end_of_subf, s))));
-                    previous_to_calculate = move(f);
-                    it = it_end_of_subf;
-                    break;
-                }
+                    return make_unique<Sqrt>(making_subf(it, s));
                 case SIN:
-                {
-                    sregex_iterator it_end_of_subf = it;
-                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
-                        throw InvalidString;
-                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-                    it++;
-                    auto f = make_unique<Sin>(move(make_f(string_subf(it, it_end_of_subf, s))));
-                    previous_to_calculate = move(f);
-                    it = it_end_of_subf;
-                    break;
-                }
+                    return make_unique<Sin>(making_subf(it, s));
                 case COS:
-                {
-                    sregex_iterator it_end_of_subf = it;
-                    if (operations_map[(*(++it_end_of_subf)).str()] != BRACKET)
-                        throw InvalidString;
-                    it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-                    it++;
-                    auto f = (make_f(string_subf(it, it_end_of_subf, s)));
-                    previous_to_calculate = move(make_unique<Cos>(move(f)));
-                    it = it_end_of_subf;
-                    break;
-                }
+                    return make_unique<Cos>(making_subf(it, s));
                 default:
                 {
                     throw InvalidString;
@@ -98,9 +48,30 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
     }
     else
         if (calculatable_map.size() == 1)
-            previous_to_calculate = move(extract(calculatable_map, calculatable_map.begin()->first));
+            return move(extract(calculatable_map, calculatable_map.begin()->first));
         else
             throw InvalidString;
+}
+unique_ptr<ICalculatable> Parser::make_f(string s){
+    auto numbers_begin = sregex_iterator(s.begin(), s.end(), numbers);
+    auto xs_begin = sregex_iterator(s.begin(), s.end(), xs);
+    auto operations_begin = sregex_iterator(s.begin(), s.end(), operations);
+    auto sregex_interator_end = sregex_iterator();    
+    
+    map<int, unique_ptr<ICalculatable>> calculatable_map;
+    for (auto i = numbers_begin; i != sregex_interator_end; ++i) {
+        smatch match = *i;
+        calculatable_map.insert(make_pair(match.position(), make_unique<Scalar>(stof(match.str()))));
+    }
+    for (auto i = xs_begin; i != sregex_interator_end; ++i) {
+        smatch match = *i;
+        calculatable_map.insert(make_pair(match.position(), make_unique<X>()));
+    }
+
+    auto it = operations_begin;
+    unique_ptr<ICalculatable> previous_to_calculate = initial_iteration(it, calculatable_map, s);
+    unique_ptr<ICalculatable> temp;
+    int temp_key = END_OF_STRING;
 
     while(it != sregex_interator_end){
         smatch match = *it;
@@ -144,12 +115,10 @@ unique_ptr<ICalculatable> Parser::make_f(string s){
             }
         }
         else{
-            sregex_iterator it_end_of_subf = it_prev;
             temp = move(previous_to_calculate);
             temp_key = match_key;
-            it_end_of_subf = find_end_of_subf(it_end_of_subf, s);
-            previous_to_calculate = move(make_f(string_subf(it_prev, it_end_of_subf, s)));
-            it = it_end_of_subf;
+            previous_to_calculate = making_subf(it_prev, s);
+            it = it_prev;
         }
 
         if (temp != nullptr){
@@ -192,9 +161,9 @@ void run_for_test(istream& input, ostream& output){
     double x = 0;
     getline(input, s);
     input >> x;
-    Parser parser(s);
+    Parser parser;
     try{
-        auto f = parser.make_f();
+        auto f = parser.make_f(s);
         output << f->calculate(x) << endl;
     }
     catch(invalid_argument e){

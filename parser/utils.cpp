@@ -18,11 +18,6 @@ unique_ptr<ICalculatable> extract(map<int, unique_ptr<ICalculatable>>& mp, int p
 }
 
 int find_priority(int operation_key){
-    // for(auto it_priority = priority_map.begin(); it_priority != priority_map.end(); ++it_priority){
-    //     if (it_priority->second.find(operation) != string::npos){
-    //         return it_priority->first;
-    //     }
-    // }
     return operation_key / 10;
 }
 
@@ -44,16 +39,13 @@ sregex_iterator find_end_of_subf(sregex_iterator it, string s){
     while (it != sregex_iterator()){
         match = *it;
         string_to_compare = match.str();
-        if (string_to_compare == "("){ 
-            level++; 
-        }
-        if (string_to_compare == ")"){
+        if (string_to_compare == "(")
+            level++;
+        if (string_to_compare == ")")
             level--;
-        }
-        if (((find_priority(operations_map[string_to_compare]) == priority_to_find) && (level == 0))){ // ||
-            //((find_priority(operations_map[string_to_compare]) == priority_to_find) && (level == -1))){
+
+        if (((find_priority(operations_map[string_to_compare]) == priority_to_find) && (level == 0)))
             return it;
-        }
         it++;
     }
 

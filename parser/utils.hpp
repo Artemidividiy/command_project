@@ -7,6 +7,19 @@
 #include <regex>
 #include <math.h>
 
+
+using std::map;
+using std::make_pair;
+using std::string;
+using std::invalid_argument;
+using std::regex;
+using std::sregex_iterator;
+using std::unique_ptr;
+using std::make_unique;
+using std::move;
+using std::smatch;
+
+#define DefaultException invalid_argument("Something went wrong")
 #define DivisionException invalid_argument("Division by zero")
 #define RootFromNegativeException invalid_argument("Root from negative number")
 
@@ -21,11 +34,9 @@
 #define BRACKET 30
 #define CLOSED_BRACKET 31
 
-using namespace std;
 static map<string, int> operations_map = {{"+", PLUS}, {"-", MINUS}, {"*", MULTIPLY}, {"/", DIVIDE}, 
                                    {"sqrt", SQRT}, {"sin", SIN}, {"cos", COS}, {"(", BRACKET},{")", CLOSED_BRACKET},
                                    {"\0", END_OF_STRING}};
-static map<int, string> priority_map = {{1, "+-"}, {2, "*/"}, {3, "()"}};
 
 struct ICalculatable
 {
@@ -33,7 +44,7 @@ struct ICalculatable
 	virtual ~ICalculatable() = default;
 };
 
-using ICalculatableUPtr = std::unique_ptr<ICalculatable>;
+using ICalculatableUPtr = unique_ptr<ICalculatable>;
 
 class Scalar : public ICalculatable
 {
@@ -63,9 +74,14 @@ class BinaryOperator : public ICalculatable
 {
 public:
 	BinaryOperator(ICalculatableUPtr left, ICalculatableUPtr right)
-					: left_{std::move(left)},
-					right_{std::move(right)}
-	{}
+	{
+		if ((left == nullptr) || (right == nullptr))
+			throw DefaultException;
+		else{
+			left_ = move(left);
+			right_ = move(right);
+		}
+	}
 
 	float calculate(float x) const override
 	{
@@ -83,12 +99,14 @@ class UnaryOperator : public ICalculatable
 {
 public:
 	UnaryOperator(ICalculatableUPtr ptr_to_calculate_)
-					: ptr_to_calculate{std::move(ptr_to_calculate_)}
-	{}
+	{
+		if (!ptr_to_calculate_)
+			throw DefaultException;
+		else
+			ptr_to_calculate = move(ptr_to_calculate_);
+	}
 
 	virtual float calculate(float x) const  = 0;
-
-	// virtual float calculate(float argument) const = 0;
 
 protected:
 	ICalculatableUPtr ptr_to_calculate;
@@ -189,9 +207,8 @@ public:
 	}
 };
 
-double binary_search(double a, double b, int n, double (*func)(double x));
 void find_closest_pos(const std::map<int, std::unique_ptr<ICalculatable>> &calc_map, const int pos, int& closest_right);
-std::unique_ptr<ICalculatable> extract(std::map<int, std::unique_ptr<ICalculatable>>& mp, int pos);
+unique_ptr<ICalculatable> extract(std::map<int, unique_ptr<ICalculatable>>& mp, int pos);
 bool is_less_priority(int operation_key, int next_operation_key);
 sregex_iterator find_its_closing_bracket(sregex_iterator it, string s);
 string string_inside_brackets(sregex_iterator it, sregex_iterator it_bracket_end, string s);
